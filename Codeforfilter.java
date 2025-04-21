@@ -1,8 +1,8 @@
-#include <Arduino_LSM6DS3.h> // Built-in IMU library
-#include <ArduinoBLE.h>      // BLE library
+#include <Arduino_LSM6DS3.h> 
+#include <ArduinoBLE.h>      
 
 #define ALPHA 0.05  // Complementary filter weight (Gyro: 5%, Accel: 95%)
-#define BUFFER_SIZE 10  // Number of readings to average
+#define BUFFER_SIZE 10  // Averaging data
 #define TILT_THRESHOLD 30  // Threshold angle 
 #define DURATION_THRESHOLD 10000 
 
