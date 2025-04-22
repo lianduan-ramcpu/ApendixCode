@@ -58,7 +58,7 @@ try:
                 # Handle cases where the line is not in the expected format (e.g., a non-numeric value)
                 print(f"Skipping invalid data line: {data}")
         
-        # Add a small delay to avoid overwhelming the CPU
+       
         time.sleep(0.1)
 
 except KeyboardInterrupt:
