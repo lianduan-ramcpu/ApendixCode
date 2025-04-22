@@ -1,10 +1,10 @@
-#include <Arduino_LSM6DS3.h> 
-#include <ArduinoBLE.h>      
+#include <Arduino_LSM6DS3.h> // Built-in IMU library
+#include <ArduinoBLE.h>      // BLE library
 
-#define ALPHA 0.05  // Complementary filter weight (Gyro: 5%, Accel: 95%)
-#define BUFFER_SIZE 10  // Averaging data
-#define TILT_THRESHOLD 30  // Threshold angle 
-#define DURATION_THRESHOLD 10000 
+#define ALPHA 0.98  // Complementary filter weight (Gyro: 98%, Accel: 2%)
+#define BUFFER_SIZE 10  // Number of readings to average
+#define TILT_THRESHOLD 30  // Threshold angle in degrees
+#define DURATION_THRESHOLD 10000 // Time in ms (10 seconds)
 
 // Kalman filter variables
 float kalmanAngle = 0;
@@ -19,7 +19,8 @@ unsigned long tiltStartTime = 0;
 bool notificationSent = false;
 bool secondWarningSent = false;
 bool finalWarningSent = false;
-
+// Pin for LED
+const int ledPin = 13;
 BLEService sensorService("12345678-1234-5678-1234-56789abcdef0");
 BLECharacteristic sensorDataCharacteristic(
     "abcdef01-1234-5678-1234-56789abcdef0",
@@ -48,7 +49,7 @@ void setup() {
   sensorService.addCharacteristic(sensorDataCharacteristic);
   BLE.addService(sensorService);
   BLE.advertise();
-
+  pinMode(ledPin, OUTPUT);// set LED as output
   Serial.println("BLE advertising started...");
 }
 
@@ -70,6 +71,9 @@ void loop() {
         tiltAngle = kalmanFilter(tiltAngle, gz);
 
         if (tiltAngle < 0) tiltAngle = 0;
+        // Ignore small fluctuations
+        if (abs(tiltAngle) < 1) tiltAngle = 0;
+        tiltAngle = round(tiltAngle * 10) / 10.0;  // Round to 1 decimal place
 
         if (tiltAngle >= TILT_THRESHOLD) {
             if (tiltStartTime == 0) {
@@ -80,16 +84,20 @@ void loop() {
                 if (elapsedTime >= DURATION_THRESHOLD && !notificationSent) {
                     sendPostureNotification("Warning: Poor posture detected!");
                     notificationSent = true;
+                   // Turn on LED when bad posture is detected （suppose to be vibration motor)
+                digitalWrite(ledPin, HIGH);  // Turn on LED
                 } 
 
                 else if (elapsedTime >= 30000 && !secondWarningSent) {  //  30s warning
                     sendPostureNotification("Fix your posture as soon as possible");
                     secondWarningSent = true;
+                    digitalWrite(ledPin, HIGH);  // Turn on LED
                 } 
 
                 else if (elapsedTime >= 60000 && !finalWarningSent) {  // 60s warning
                     sendPostureNotification("Fix your posture now!");
                     finalWarningSent = true;
+                    digitalWrite(ledPin, HIGH);  // Turn on LED
                 }
             }
         } else {  
@@ -97,6 +105,8 @@ void loop() {
             notificationSent = false;
             secondWarningSent = false;
             finalWarningSent = false;
+            // Turn off LED when posture is corrected
+            digitalWrite(ledPin, LOW);  // Turn off LED
         }
         delay(500);
       }
